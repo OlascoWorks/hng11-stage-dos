@@ -1,0 +1,7 @@
+.env
+.venv
+test.py
+
+__pycache__
+/node_modules
+/instance
