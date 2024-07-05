@@ -43,10 +43,10 @@ def token_required(f):
     return decorated
 
 def validate_fields(fn, ln, email, password):
-    if len(fn) < 1:  return False, ['firstName', 'first name cannot be null']
-    elif len(ln) < 1:  return False, ['lastName', 'last name cannot be null']
-    elif len(email) < 1:  return False, ['email', 'email cannot be null']
-    elif len(password) < 1:  return False, ['password', 'password cannot be null']
+    if len(fn) < 1:  return False, ['firstName', 'first name is required']
+    elif len(ln) < 1:  return False, ['lastName', 'last name is required']
+    elif len(email) < 1:  return False, ['email', 'email is required']
+    elif len(password) < 1:  return False, ['password', 'password is required']
 
     if User.query.filter_by(email=email).first():  return False, ['email', 'a user with this email already exits']
 

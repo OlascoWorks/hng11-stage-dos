@@ -1,4 +1,4 @@
-from .main import db
+from api import db
 
 class User(db.Model):
     userId = db.Column(db.String(80), primary_key=True, unique=True)
@@ -15,7 +15,7 @@ class Organisation(db.Model):
     orgId = db.Column(db.String(80), primary_key=True, unique=True)
     name = db.Column(db.String(80), nullable=False)
     description = db.Column(db.String(600))
-    user_id = db.Column(db.String(80))
+    userId = db.Column(db.String(600))
 
     def __repr__(self) -> str:
         return f"This is organisation {self.name} belonging to"

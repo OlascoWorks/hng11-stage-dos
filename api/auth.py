@@ -1,22 +1,22 @@
 from flask import Blueprint, request, jsonify, make_response
 from .models import User, Organisation
-from .main import db
 from .controllers import validate_fields, generate_access_token, check_password
 from datetime import datetime, timedelta
 import bcrypt, uuid
 
 auth = Blueprint('auth', __name__)
+from api import db
 
 @auth.route('/register', methods=['POST'])
 def register():
     try:
-        first_name = request.args.get('firstName')
-        last_name = request.args.get('lastName')
-        email = request.args.get('email')
-        password = request.args.get('password')
-        phone = request.args.get('phone')
+        first_name = request.form.get('firstName')
+        last_name = request.form.get('lastName')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        phone = request.form.get('phone')
 
-        if not first_name or not last_name or not email or not password or not phone:
+        if not first_name or not last_name or not email or not password:
             return jsonify({
                 "status": "Bad request",
                 "message": "Registration unsuccessful",
@@ -50,7 +50,7 @@ def register():
         access_token = generate_access_token(data)
         
         org_id = str(uuid.uuid4().hex)
-        user_org = Organisation(orgId=org_id, name=f"{first_name}'s Organisation", description=f"This is {last_name} {first_name}'s organisation")
+        user_org = Organisation(orgId=org_id, name=f"{first_name}'s Organisation", description=f"This is {last_name} {first_name}'s organisation", userId=user_id)
         db.session.add(user_org)
         db.session.commit()
 
@@ -83,13 +83,19 @@ def register():
     
 @auth.route('/login', methods=['POST'])
 def login():
-    email = request.args.get('email')
-    password = request.args.get('password')
+    email = request.form.get('email')
+    password = request.form.get('password')
 
     user = User.query.filter_by(email=email).first()
     is_password_correct = check_password(password, user)
 
-    if not email or not password or not user or is_password_correct == False:
+    if not email or not password or not user:
+        return jsonify({
+            "status": "Bad request",
+            "message": "Authentication failed",
+            "statusCode": 401
+        }), 401
+    elif is_password_correct == False:
         return jsonify({
             "status": "Bad request",
             "message": "Authentication failed",

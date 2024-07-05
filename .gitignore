@@ -1,6 +1,7 @@
 .env
 .venv
 test.py
+gpt.txt
 
 __pycache__
 /node_modules
