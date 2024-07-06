@@ -10,11 +10,12 @@ from api import db
 @auth.route('/register', methods=['POST'])
 def register():
     try:
-        first_name = request.form.get('firstName')
-        last_name = request.form.get('lastName')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        phone = request.form.get('phone')
+        request_data = request.get_json()
+        first_name = request_data['firstName']
+        last_name = request_data['lastName']
+        email = request_data['email']
+        password = request_data['password']
+        phone = request_data['phone']
 
         if not first_name or not last_name or not email or not password:
             return jsonify({
@@ -83,8 +84,9 @@ def register():
     
 @auth.route('/login', methods=['POST'])
 def login():
-    email = request.form.get('email')
-    password = request.form.get('password')
+    request_data = request.get_json()
+    email = request_data['email']
+    password = request_data['password']
 
     user = User.query.filter_by(email=email).first()
     is_password_correct = check_password(password, user)

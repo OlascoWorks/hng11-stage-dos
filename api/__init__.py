@@ -52,8 +52,9 @@ def create_app():
             }), 401
         
         if request.method == 'POST':
-            name = request.form.get('name')
-            description = request.form.get('description')
+            request_data = request.get_json()
+            name = request_data['name']
+            description = request_data['description']
 
             if not name or len(name) < 0:
                 return jsonify({
@@ -136,7 +137,7 @@ def create_app():
                 "message": "organisation does not exist"
             }), 401
         
-        user_id = request.form.get('userId')
+        user_id = request.get_json()['userId']
         if user_id in organisation.userId.strip():
             return jsonify({
                 "status": "unsuccessful",
