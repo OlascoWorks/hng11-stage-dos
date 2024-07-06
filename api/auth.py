@@ -41,10 +41,10 @@ def register():
         user_id = str(uuid.uuid4().hex)
         data = {
             "id": user_id,
-            "exp": datetime.now() + timedelta(minutes=3)
+            "exp": datetime.now() + timedelta(minutes=15)
         }
 
-        new_user = User(id=user_id, firstName=first_name, lastName=last_name, email=email, password=hashed_password, phone=phone)
+        new_user = User(userId=user_id, firstName=first_name, lastName=last_name, email=email, password=hashed_password, phone=phone)
         db.session.add(new_user)
         db.session.commit()
 
@@ -91,13 +91,7 @@ def login():
     user = User.query.filter_by(email=email).first()
     is_password_correct = check_password(password, user)
 
-    if not email or not password or not user:
-        return jsonify({
-            "status": "Bad request",
-            "message": "Authentication failed",
-            "statusCode": 401
-        }), 401
-    elif is_password_correct == False:
+    if not email or not password or not user or is_password_correct == False:
         return jsonify({
             "status": "Bad request",
             "message": "Authentication failed",
@@ -106,7 +100,7 @@ def login():
     
     data = {
         "id": user.id,
-        "exp": datetime.now() + timedelta(minutes=3)
+        "exp": datetime.now() + timedelta(minutes=15)
     }
     access_token = generate_access_token(data)
 

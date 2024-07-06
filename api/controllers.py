@@ -57,5 +57,8 @@ def generate_access_token(data):
     return access_code
 
 def check_password(password, user):
-    if bcrypt.checkpw(password.encode('utf-8'), user.password):  return True
-    else: return False
+    try:
+        if bcrypt.checkpw(password.encode('utf-8'), user.password):  return True
+        else: return False
+    except:
+        return False
