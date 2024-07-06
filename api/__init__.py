@@ -1,19 +1,21 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from dotenv import load_dotenv
 import os, uuid
 
+load_dotenv()
 db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') if os.environ.get('DATABASE_URL') else 'sqlite:///database.db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URL', 'sqlite:///database.db') 
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     app.config.from_pyfile('config.py')
 
     db.init_app(app)
 
     from .controllers import token_required
-    from .models import Organisation
+    from .models import Organisation, User, UserOrganisation
     @app.route('/api/users/<user_id>')
     @token_required
     def get_user(currentUser, access_token, user_id):
@@ -23,22 +25,34 @@ def create_app():
                 "message": "user not logged in"
             }), 401
         
+        payload = {}
         user = currentUser
-        if currentUser.id != user_id:
+        if currentUser.userId != user_id:
+            orgs_user1 = db.session.query(UserOrganisation.orgId).filter_by(userId=currentUser.userId).subquery()
+            common_orgs = db.session.query(UserOrganisation).filter(UserOrganisation.userId == user_id, UserOrganisation.orgId.in_(orgs_user1)).all()
+
+            if not common_orgs:
+                return jsonify({
+                    "status": "unsuccessful",
+                    "message": "user does not have access to this resource"
+                }), 403
+       
+        user = User.query.filter_by(userId=user_id).first()
+        if not user:
             return jsonify({
                 "status": "unsuccessful",
-                "message": "user does not have access to this resource"
+                "message": "user does not exist"
             }), 403
         
         return jsonify({
             "status": "success",
             "message": "here is your info",
             "data": {
-                "userId": currentUser.id,
-                "firstName": currentUser.firstName,
-                "lastName": currentUser.lastName,
-                "email": currentUser.email,
-                "phone": currentUser.phone
+                "userId": user.userId,
+                "firstName": user.firstName,
+                "lastName": user.lastName,
+                "email": user.email,
+                "phone": user.phone
             }
         }), 200
 
@@ -63,8 +77,8 @@ def create_app():
                     "statusCode": 400
                 }), 400
             
-            org_id = uuid.uuid4.hex()
-            new_org = Organisation(orgId=str(org_id), name=name, description=description, userId=currentUser.id)
+            org_id = uuid.uuid4().hex
+            new_org = Organisation(orgId=str(org_id), name=name, description=description, userId=currentUser.userId)
             db.session.add(new_org)
             db.session.commit()
 
@@ -78,11 +92,11 @@ def create_app():
                 }
             })
         else:
-            organisations = Organisation.query.filter_by(userId=currentUser.id).all()
+            organisations = Organisation.query.filter_by(userId=currentUser.userId).all()
             orgs = []
             for organisation in organisations:
                 orgs.append({
-                    "orgId": organisation.id,
+                    "orgId": organisation.orgId,
                     "name": organisation.name,
                     "description": organisation.description
                 })
@@ -105,13 +119,14 @@ def create_app():
             }), 401
         
         organisation = Organisation.query.filter_by(orgId=orgId).first()
+        org = UserOrganisation.query.filter_by(orgId=orgId, userId=currentUser.userId).first()
 
         if not organisation:
             return jsonify({
                 "status": "unsuccessful",
                 "message": "organisation does not exist"
             }), 403
-        elif organisation.userId not in currentUser.userId.strip():
+        elif not org:
             return jsonify({
                 "status": "unsuccessful",
                 "message": "user does not have access to this resource"
@@ -121,30 +136,38 @@ def create_app():
             "status": "success",
             "message": "here is the organisation",
             "data": {
-                "orgId": organisation.id,
+                "orgId": organisation.orgId,
                 "name": organisation.name,
                 "description": organisation.description
             }
         }), 200
 
     @app.route('/api/organisations/<orgId>/users', methods=['POST'])
-    def add_user_to_org(currentUser, access_token, orgId):
+    def add_user_to_org(orgId):
         organisation = Organisation.query.filter_by(orgId=orgId).first()
+        user_id = request.get_json()['userId']
+        user = User.query.filter_by(userId=user_id).first()
+        org = UserOrganisation.query.filter_by(orgId=orgId, userId=user_id).first()
 
         if not organisation:
             return jsonify({
                 "status": "unsuccessful",
                 "message": "organisation does not exist"
             }), 401
-        
-        user_id = request.get_json()['userId']
-        if user_id in organisation.userId.strip():
+        elif not user:
+            return jsonify({
+                "status": "unsuccessful",
+                "message": "user with provided id does not exist"
+            }), 401
+        elif org:
             return jsonify({
                 "status": "unsuccessful",
                 "message": "user already exists in this organisation"
             }), 401
         
-        organisation.userId += f" {user_id}"
+        new_user_to_org = UserOrganisation(orgId=orgId, userId=user_id)
+        db.session.add(new_user_to_org)
+        db.session.commit()
         
         return jsonify({
             "status": "success",

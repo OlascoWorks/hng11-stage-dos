@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from .models import User
 from functools import wraps
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import jwt, os,bcrypt
 
 def token_required(f):
@@ -18,24 +18,33 @@ def token_required(f):
             token = 'No-ToKeN1234'
   
         try:
-            # decoding the payload to fetch the stored details
             data = jwt.decode(token, os.environ.get('JWT_SECRET'), algorithms=["HS256"])
             expiration = data['exp']
-            # covert expiration to datetime
-            expiration = datetime.fromtimestamp(expiration)
+            expiration = datetime.utcfromtimestamp(expiration)
+            
             if expiration < datetime.now():
                 return jsonify({
                     'message' : 'Token is expired!!',
-                    'error' : str(e)
+                    'error' : 'user token has expired. please try logging in'
                 }), 401
             else:
                 currentUser = User.query.filter_by(userId=data['id']).first()
                 access_token = request.cookies['X-access-token']
+        except jwt.ExpiredSignatureError:
+            return jsonify({
+                'message': 'Token is expired!!',
+                'error': 'User token has expired. Please try logging in.'
+            }), 401
+        except jwt.InvalidTokenError:
+            return jsonify({
+                'message': 'Token is invalid!!',
+                'error': 'Invalid token. Please log in again.'
+            }), 401
         except Exception as e:
             return jsonify({
-                'message' : 'Token is invalid!!',
-                'error' : str(e)
-            }), 401
+                'message': 'There was an error while validating token!!',
+                'error': str(e)
+            }), 500
         
         # returns the current logged in users context to the routes
         return  f(currentUser, access_token, *args, **kwargs)
@@ -56,9 +65,10 @@ def generate_access_token(data):
     access_code = jwt.encode(data, os.environ.get('JWT_SECRET'))
     return access_code
 
-def check_password(password, user):
+def check_password(password, user_password):
     try:
-        if bcrypt.checkpw(password.encode('utf-8'), user.password):  return True
+        if bcrypt.checkpw(password.encode('utf-8'), user_password):  return True
         else: return False
-    except:
+    except Exception as e:
+        print(str(e))
         return False

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, make_response
-from .models import User, Organisation
+from .models import User, Organisation, UserOrganisation
 from .controllers import validate_fields, generate_access_token, check_password
 from datetime import datetime, timedelta
 import bcrypt, uuid
@@ -44,6 +44,7 @@ def register():
             "exp": datetime.now() + timedelta(minutes=15)
         }
 
+        print(password, hashed_password)
         new_user = User(userId=user_id, firstName=first_name, lastName=last_name, email=email, password=hashed_password, phone=phone)
         db.session.add(new_user)
         db.session.commit()
@@ -53,6 +54,10 @@ def register():
         org_id = str(uuid.uuid4().hex)
         user_org = Organisation(orgId=org_id, name=f"{first_name}'s Organisation", description=f"This is {last_name} {first_name}'s organisation", userId=user_id)
         db.session.add(user_org)
+        db.session.commit()
+
+        user_organisation = UserOrganisation(userId=user_id, orgId=org_id)
+        db.session.add(user_organisation)
         db.session.commit()
 
         payload = {
@@ -71,16 +76,15 @@ def register():
         }
 
         response = make_response(payload)
-        response.set_cookie('X-access-token', value=access_token, expires=datetime.now() + timedelta(minutes=3), secure=True, httponly=True, samesite='Strict')
+        response.set_cookie('X-access-token', value=access_token, expires=datetime.now() + timedelta(minutes=15), secure=True, httponly=True, samesite='Strict')
 
         return response, 201
     except Exception as e:
         return jsonify({
-            "status": "Internal Server Error",
-            "message": "Registration unsuccessful",
-            "statusCode": 500,
-            "error": str(e)
-        }), 500
+                "status": "Bad request",
+                "message": "Registration unsuccessful",
+                "statusCode": 422
+            }), 422
     
 @auth.route('/login', methods=['POST'])
 def login():
@@ -89,9 +93,10 @@ def login():
     password = request_data['password']
 
     user = User.query.filter_by(email=email).first()
-    is_password_correct = check_password(password, user)
+    is_password_correct = check_password(password, user.password)
 
     if not email or not password or not user or is_password_correct == False:
+        print(email,password,is_password_correct)
         return jsonify({
             "status": "Bad request",
             "message": "Authentication failed",
@@ -99,7 +104,7 @@ def login():
         }), 401
     
     data = {
-        "id": user.id,
+        "id": user.userId,
         "exp": datetime.now() + timedelta(minutes=15)
     }
     access_token = generate_access_token(data)
@@ -110,7 +115,7 @@ def login():
         "data": {
             "accessToken": str(access_token),
             "user": {
-                "userId": user.id,
+                "userId": user.userId,
                 "firstName": user.firstName,
                 "lastName": user.lastName,
                 "email": email,
@@ -120,6 +125,6 @@ def login():
     }
 
     response = make_response(jsonify(payload))
-    response.set_cookie('X-access-token', value=access_token, expires=datetime.now() + timedelta(minutes=3), secure=True, httponly=True, samesite='Strict')
+    response.set_cookie('X-access-token', value=access_token, expires=datetime.now() + timedelta(minutes=15), secure=True, httponly=True, samesite='Strict')
 
     return response, 200
