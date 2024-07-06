@@ -44,8 +44,8 @@ def register():
             "exp": datetime.now() + timedelta(minutes=15)
         }
 
-        print(password, hashed_password)
-        new_user = User(userId=user_id, firstName=first_name, lastName=last_name, email=email, password=hashed_password, phone=phone)
+        pw_hash = hashed_password.decode('utf-8')
+        new_user = User(userId=user_id, firstName=first_name, lastName=last_name, email=email, password=pw_hash, phone=phone)
         db.session.add(new_user)
         db.session.commit()
 
@@ -93,15 +93,14 @@ def login():
     password = request_data['password']
 
     user = User.query.filter_by(email=email).first()
-    is_password_correct = check_password(password, user.password)
 
-    if not email or not password or not user or is_password_correct == False:
-        print(email,password,is_password_correct)
-        return jsonify({
-            "status": "Bad request",
-            "message": "Authentication failed",
-            "statusCode": 401
-        }), 401
+    payload = {
+        "status": "Bad request",
+        "message": "Authentication failed",
+        "statusCode": 401
+    } 
+    if not email or not password or not user:  return jsonify(payload), 401
+    elif not check_password(password, user.password):  return jsonify(payload), 401
     
     data = {
         "id": user.userId,
