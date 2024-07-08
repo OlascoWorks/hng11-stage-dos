@@ -10,14 +10,14 @@ from api import db
 @auth.route('/register', methods=['POST'])
 def register():
     try:
-        request_data = request.get_json()
+        request_data = request.get_json(silent=True)
         first_name = request_data['firstName']
         last_name = request_data['lastName']
         email = request_data['email']
         password = request_data['password']
-        phone = request_data['phone']
+        phone = request_data['phone'] if 'phone' in request_data else ''
 
-        if not first_name or not last_name or not email or not password:
+        if not first_name or not last_name or not email:
             return jsonify({
                 "status": "Bad request",
                 "message": "Registration unsuccessful",
@@ -102,7 +102,7 @@ def login():
         "exp": datetime.now() + timedelta(minutes=15)
     }
     access_token = generate_access_token(data)
-    
+
     return jsonify({
         "status": "success",
         "message": "Login successful",

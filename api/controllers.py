@@ -18,9 +18,11 @@ def token_required(f):
                 }), 401
         else:  token = request.authorization.token
   
+        print(token)
         try:
             data = jwt.decode(token, os.environ.get('JWT_SECRET'), algorithms=["HS256"])
             expiration = data['exp']
+            print(expiration)
             expiration = datetime.utcfromtimestamp(expiration)
             
             if expiration < datetime.now():
@@ -42,6 +44,7 @@ def token_required(f):
                 'error': 'Invalid token. Please log in again.'
             }), 401
         except Exception as e:
+            print(str(e))
             return jsonify({
                 'message': 'There was an error while validating token!!',
                 'error': str(e)
