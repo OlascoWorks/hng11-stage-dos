@@ -143,27 +143,40 @@ def create_app():
         }), 200
 
     @app.route('/api/organisations/<orgId>/users', methods=['POST'])
-    def add_user_to_org(orgId):
+    @token_required
+    def add_user_to_org(currentUser, access_token, orgId):
+        if currentUser == None:
+            return jsonify({
+                "status": "unsuccessful",
+                "message": "user not logged in"
+            }), 401
+        
         organisation = Organisation.query.filter_by(orgId=orgId).first()
         user_id = request.get_json()['userId']
         user = User.query.filter_by(userId=user_id).first()
         org = UserOrganisation.query.filter_by(orgId=orgId, userId=user_id).first()
+        belongs = UserOrganisation.query.filter_by(orgId=orgId, userId=currentUser.userId).first()
 
-        if not organisation:
+        if not belongs:
+            return jsonify({
+                "status": "unsuccessful",
+                "message": "user does not have access to this organisation"
+            }), 401
+        elif not organisation:
             return jsonify({
                 "status": "unsuccessful",
                 "message": "organisation does not exist"
-            }), 401
+            }), 400
         elif not user:
             return jsonify({
                 "status": "unsuccessful",
                 "message": "user with provided id does not exist"
-            }), 401
+            }), 400
         elif org:
             return jsonify({
                 "status": "unsuccessful",
                 "message": "user already exists in this organisation"
-            }), 401
+            }), 400
         
         new_user_to_org = UserOrganisation(orgId=orgId, userId=user_id)
         db.session.add(new_user_to_org)
