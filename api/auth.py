@@ -10,7 +10,7 @@ from api import db
 @auth.route('/register', methods=['POST'])
 def register():
     try:
-        request_data = request.get_json(silent=True)
+        request_data = request.get_json()
         first_name = request_data['firstName']
         last_name = request_data['lastName']
         email = request_data['email']
