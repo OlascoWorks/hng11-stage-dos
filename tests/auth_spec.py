@@ -74,7 +74,7 @@ def test_organisation_access_control(mrman, mrswoman):
         "name": "Jack's seconnd Org",
         "description": "John's Description"
     }
-    headers1 = {"Cookie": f"X-access-token={token1}"}
+    headers1 = {"Authorization": f"Bearer {token1}"}
     response = requests.post(f"{BASE_URL}/api/organisations", json=org_payload, headers=headers1)
     data = response.json()
     
@@ -82,7 +82,7 @@ def test_organisation_access_control(mrman, mrswoman):
     org_id = data['data']['orgId']
     
     # Jill tries to access Jack's organisation
-    headers2 = {"Cookie": f"X-access-token={token2}"}
+    headers2 = {"Authorization": f"Bearer {token2}"}
     response = requests.get(f"{BASE_URL}/api/organisations/{org_id}", headers=headers2)
     
     assert response.status_code == 403
@@ -102,7 +102,7 @@ def test_register_endpoint(boy):
     
     # Check if a default organization is created
     token = data['data']['accessToken']
-    headers = {"Cookie": f"X-access-token={token}"}
+    headers = {"Authorization": f"Bearer {token}"}
     response = requests.get(f"{BASE_URL}/api/organisations", headers=headers)
     data = response.json()
     

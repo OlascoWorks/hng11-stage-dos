@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from .models import User
 from functools import wraps
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 import jwt, os,bcrypt
 
 def token_required(f):
@@ -10,12 +10,13 @@ def token_required(f):
         currentUser = None
         token = None
 
-        if 'X-access-token' in request.cookies:
-            token = request.cookies['X-access-token']
-
-        # set to arbitrary value if token is not passed
-        if not token:
-            token = 'No-ToKeN1234'
+        header = request.authorization
+        if not header:
+            return jsonify({
+                    'message' : 'Token was not provided!!',
+                    'error' : 'please provide an access token'
+                }), 401
+        else:  token = request.authorization.token
   
         try:
             data = jwt.decode(token, os.environ.get('JWT_SECRET'), algorithms=["HS256"])

@@ -60,7 +60,7 @@ def register():
         db.session.add(user_organisation)
         db.session.commit()
 
-        payload = {
+        return jsonify({
             "status": "success",
             "message": "Registration successful",
             "data": {
@@ -73,12 +73,7 @@ def register():
                     "phone": phone
                 }
             }
-        }
-
-        response = make_response(payload)
-        response.set_cookie('X-access-token', value=access_token, expires=datetime.now() + timedelta(minutes=15), secure=True, httponly=True, samesite='Strict')
-
-        return response, 201
+        }), 201
     except Exception as e:
         return jsonify({
                 "status": "Bad request",
@@ -107,8 +102,8 @@ def login():
         "exp": datetime.now() + timedelta(minutes=15)
     }
     access_token = generate_access_token(data)
-
-    payload = {
+    
+    return jsonify({
         "status": "success",
         "message": "Login successful",
         "data": {
@@ -121,9 +116,4 @@ def login():
                 "phone": user.phone
             }
         }
-    }
-
-    response = make_response(jsonify(payload))
-    response.set_cookie('X-access-token', value=access_token, expires=datetime.now() + timedelta(minutes=15), secure=True, httponly=True, samesite='Strict')
-
-    return response, 200
+    }), 200
