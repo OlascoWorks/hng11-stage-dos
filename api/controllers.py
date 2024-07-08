@@ -17,12 +17,10 @@ def token_required(f):
                     'error' : 'please provide an access token'
                 }), 401
         else:  token = request.authorization.token
-  
-        print(token)
+
         try:
             data = jwt.decode(token, os.environ.get('JWT_SECRET'), algorithms=["HS256"])
             expiration = data['exp']
-            print(expiration)
             expiration = datetime.utcfromtimestamp(expiration)
             
             if expiration < datetime.now():
@@ -32,7 +30,7 @@ def token_required(f):
                 }), 401
             else:
                 currentUser = User.query.filter_by(userId=data['id']).first()
-                access_token = request.cookies['X-access-token']
+                access_token = token
         except jwt.ExpiredSignatureError:
             return jsonify({
                 'message': 'Token is expired!!',
